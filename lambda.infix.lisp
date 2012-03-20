@@ -1,11 +1,6 @@
-;;;; lambda.infix.lisp
+;;;-*- Mode:LISP; Package:SI; Fonts:(CPTFONT TR12 TR12I); Base:8; readtable: common-lisp -*-
 
 (cl:in-package :lambda.infix.internal)
-
-;;; "lambda.infix" goes here. Hacks and glory await!
-
-;;;-*- Mode:LISP; Package:SI; Fonts:(CPTFONT TR12 TR12I); Base:8; readtable: ZL -*-
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;                                                                      ;;;
@@ -22,27 +17,14 @@
 
 ;;; Macros and functions used by the tokenizer loop.
 
-#|(DEFUN INFIX-TYI ()
-  (MULTIPLE-VALUE-BIND (NIL NIL CH)
-      ;; (XR-XRTYI *STANDARD-INPUT* NIL T)
-      (read-char *STANDARD-INPUT*)
-    CH))|#
 (DEFUN INFIX-TYI (&optional (stream *STANDARD-INPUT*))
   (read-char stream nil nil))
-
-#|(DEFSUBST INFIX-UNTYI (CH) (SEND *STANDARD-INPUT* ':UNTYI CH))|#
 
 (DEFSUBST INFIX-UNTYI (CH &optional (stream *standard-input*))
   (unread-char ch stream))
 
-#|(DEFUN INFIX-TYIPEEK ()
-  (LET ((CH (INFIX-TYI)))
-    (PROG1 CH (SEND *STANDARD-INPUT* ':UNTYI CH))))|#
 (DEFUN INFIX-TYIPEEK (&optional (stream *standard-input*))
   (peek-char nil stream nil nil))
-
-;; (defvar PREVIOUS-LOOKUP nil)
-;; (defvar NUMBER-SO-FAR nil)
 
 (DEFMACRO INFIX-RETURN-TOKEN (C STRING stream)
   `(PROGN (IF C (INFIX-UNTYI ,C ,stream))
@@ -302,7 +284,7 @@ Example:
 47 would be right-associative."
   `(PROGN (INFIX-PUTTOK ',TOKEN)
           (DEFPROP ,TOKEN ,LEFT-BINDING-POWER INFIX-LEFT-BINDING-POWER)
-          (zl:DEFUN (:property ,TOKEN INFIX-CONTINUE-EXP-FUNCTION) (,ARG ,stream)
+          (DEFUN (:property ,TOKEN INFIX-CONTINUE-EXP-FUNCTION) (,ARG ,stream)
             . ,BODY)))
 
 (DEFMACRO DEFPREFIX (TOKEN (stream) &BODY BODY)
@@ -312,7 +294,7 @@ and return the expression that contains this operation.
 Example:
    (DEFPREFIX - `(- ,(INFIX-PARSE 1000)))"
   `(PROGN (INFIX-PUTTOK ',TOKEN)
-          (zl:DEFUN (:property ,TOKEN INFIX-START-EXP-FUNCTION) (,stream)
+          (DEFUN (:property ,TOKEN INFIX-START-EXP-FUNCTION) (,stream)
             . ,BODY)))
 
 (DEFMACRO DEFDELIMITER (TOKEN)
@@ -343,7 +325,7 @@ it defaults to be equal."
 #|(DEFUN (\( INFIX-START-EXP-FUNCTION) ()
   `(PROGN . ,(INFIX-PARSE-LIST 0 '\, '\))))|#
 
-(zl:DEFUN (:property \( INFIX-START-EXP-FUNCTION) (stream)
+(DEFUN (:property \( INFIX-START-EXP-FUNCTION) (stream)
   `(PROGN . ,(INFIX-PARSE-LIST 0 '\, '\) stream)))
 
 (DEFINFIX \[ 200. (LEFT stream)
@@ -352,7 +334,7 @@ it defaults to be equal."
 #|(DEFUN (\[ INFIX-START-EXP-FUNCTION) ()
   `(LIST . ,(INFIX-PARSE-LIST 0 '\, '\])))|#
 
-(zl:DEFUN (:property \[ INFIX-START-EXP-FUNCTION) (stream)
+(DEFUN (:property \[ INFIX-START-EXP-FUNCTION) (stream)
   `(LIST . ,(INFIX-PARSE-LIST 0 '\, '\] stream)))
 
 (DEFINFIX \( 200. (LEFT stream)
@@ -438,4 +420,5 @@ it defaults to be equal."
   (PROG1 (READ stream)
          ;; Read in the token that follows the !'d s-expression.
          (SETQ INFIX-TOKEN (INFIX-READ-TOKEN stream))))
-#||||#
+
+;;; eof

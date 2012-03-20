@@ -1,5 +1,19 @@
 (cl:in-package :lambda.infix.internal)
 
+(defmacro defun (name (&rest args) &body body)
+  (etypecase name
+    ((atom)
+     `(cl:defun ,name (,@args) ,@body))
+    ((cons)
+     (ecase (car name)
+       ((:property)
+        (destructuring-bind (ignore symbol property)
+                            name
+          (declare (ignore ignore))
+          `(setf (get ',symbol ',property)
+                 (lambda (,@args)
+                   ,@body))))))))
+
 (defmacro define-site-variable (name &optional val documentation)
   `(defvar ,name ,val ,documentation))
 
@@ -37,8 +51,6 @@
 
 (defun bit-test (x y)
   (logtest x y))
-
-(defparameter *timezone* -9)
 
 (deff ≤ #'cl:<=)                        ;^\
 (deff ≥ #'cl:>=)                        ;^]
@@ -343,122 +355,7 @@ Case matters during character comparison if CONSIDER-CASE is non-NIL."
 (defun array-mem (pred item array)
   (find item array :test pred))
 
-
-
 (defun minus (num)
   (- num))
 
-#|(DEFUN XR-XRTYI (STREAM &OPTIONAL IGNORE-WHITESPACE NO-CHARS-SPECIAL NO-MULTIPLE-ESCAPES)
-  "Read a character from STREAM, processing escapes (// and /) and multiple-escapes (/|).
-IGNORE-WHITESPACE non-NIL means skip over whitespace characters.
-NO-CHARS-SPECIAL means do not process escapes specially.
-NO-MULTIPLE-ESCAPES means do not process multiple-escape characters specially.
-
-The first value is the translated character.
-The second is the index for looking in READ's FSM.
-The third is the original, nontranslated character.
-The fourth is T if the character was preceded by one or more
- multi-character escape characters that were passed over.
-
-Has a kludge for *READ-BASE* > 10. where letters that should be digits
-return the readtable code for EXTENDED-DIGIT rather than their own codes."
-  (read-char stream )
-  ;; (DECLARE (VALUES TRANSLATED-CHAR FSM-INDEX ACTUAL-CHAR FOUND-MULTI-ESCAPES))
-  #|(PROG (CH BITS CODE CH-CHAR FOUND-MULTI-ESCAPES)
-        (SETQ XR-XRTYI-PREV-CHAR XR-XRTYI-LAST-CHAR)
-     L
-        (DO-FOREVER
-          (SETQ CH (SEND STREAM (IF (EQ RUBOUT-HANDLER STREAM) :ANY-TYI :TYI)))
-          ;; fixnump as opposed to blip --- we never get character objects from :tyi
-          (if (fixnump ch) (setf (char-font ch) 0))
-          (COND ((NULL CH)
-                 (RETURN-FROM XR-XRTYI (VALUES CH
-                                               (RDTBL-EOF-CODE *READTABLE*)
-                                               CH)))
-                ((CONSP CH)
-                 (AND (EQ (CAR CH) ':ACTIVATION)
-                      ;; Ignore activations except in top-level context.
-                      (NOT IGNORE-WHITESPACE)
-                      (NOT NO-CHARS-SPECIAL)
-                      (NOT NO-MULTIPLE-ESCAPES)
-                      (LET ((CH1 (CAR (RDTBL-WHITESPACE *READTABLE*))))
-                        (RETURN-FROM XR-XRTYI (VALUES CH1
-                                                      (RDTBL-CODE *READTABLE* CH1)
-                                                      CH)))))
-                ((AND READ-DISCARD-FONT-CHANGES
-                      (EQ CH #/))
-                 (IF (EQ #/ (SEND STREAM :TYI))
-                     (RETURN)))
-                ((NOT (> CH RDTBL-ARRAY-SIZE))
-                 (RETURN))))
-        (SETQ CH-CHAR (CHAR-CODE CH))
-        (SETQ BITS (RDTBL-BITS *READTABLE* CH-CHAR))
-        (SETQ CODE (RDTBL-CODE *READTABLE* CH-CHAR))
-        (COND ((AND (NOT NO-CHARS-SPECIAL)
-                    (NOT NO-MULTIPLE-ESCAPES)
-                    (= CODE
-                       (RDTBL-MULTIPLE-ESCAPE-CODE *READTABLE*)))
-               ;; Vertical bar.
-               (SETQ FOUND-MULTI-ESCAPES T)
-               (SETQ READ-INSIDE-MULTIPLE-ESCAPE
-                     (IF READ-INSIDE-MULTIPLE-ESCAPE NIL
-                       CH-CHAR))
-               (GO L))
-              ((AND (NOT NO-CHARS-SPECIAL)
-                    (= CODE
-                       (RDTBL-ESCAPE-CODE *READTABLE*)))
-               ;; Slash
-               (SETQ XR-XRTYI-PREV-CHAR CH)
-               (DO-FOREVER
-                 (SETQ CH (SEND STREAM :TYI))
-                 (COND ((AND READ-DISCARD-FONT-CHANGES
-                             (EQ CH #/))
-                        (IF (EQ #/ (SEND STREAM :TYI))
-                            (RETURN)))
-                       (T (RETURN))))
-               (SETQ XR-XRTYI-LAST-CHAR CH)
-               (RETURN (VALUES (OR CH (PROGN
-                                        (CERROR :NO-ACTION NIL 'SYS:READ-END-OF-FILE
-                                                "EOF on ~S after a ~S." STREAM
-                                                (STRING XR-XRTYI-PREV-CHAR))
-                                        #/SPACE))
-                               (RDTBL-SLASH-CODE *READTABLE*)
-                               CH)))
-              ((AND (NOT NO-CHARS-SPECIAL)
-                    (= CODE
-                       (RDTBL-CHARACTER-CODE-ESCAPE-CODE *READTABLE*)))
-               ;; circlecross
-               (SETQ XR-XRTYI-LAST-CHAR (XR-READ-CIRCLECROSS STREAM))
-               (RETURN (VALUES XR-XRTYI-LAST-CHAR
-                               (RDTBL-SLASH-CODE *READTABLE*)
-                               XR-XRTYI-LAST-CHAR)))
-              (READ-INSIDE-MULTIPLE-ESCAPE
-               ;; Ordinary character but within vertical bars.
-               (SETQ XR-XRTYI-LAST-CHAR CH)
-               (RETURN (VALUES (OR CH (PROGN
-                                        (CERROR :NO-ACTION NIL 'READ-END-OF-FILE
-                                                "EOF on ~S inside a ~C-quoted token." STREAM
-                                                READ-INSIDE-MULTIPLE-ESCAPE)
-                                        #/SPACE))
-                               (RDTBL-SLASH-CODE *READTABLE*)
-                               CH)))
-              (T
-               ;; Ordinary character.
-               (COND ((AND IGNORE-WHITESPACE (NOT FOUND-MULTI-ESCAPES)
-                           (BIT-TEST 1 BITS))
-                      ;; Here if whitespace char to be ignored.
-                      (SETQ XR-XRTYI-PREV-CHAR CH)
-                      (GO L)))
-               ;; Here for ordinary, significant input char.
-               (SETQ XR-XRTYI-LAST-CHAR CH)
-               (RETURN (VALUES (RDTBL-TRANS *READTABLE* CH-CHAR)
-                               ;; If not doing slashes, caller must not really want the
-                               ;;  RDTBL-CODE, so return a value which, if passed to
-                               ;;  XR-XRUNTYI, will prevent barfing.
-                               (IF NO-CHARS-SPECIAL 0
-                                 (IF (AND (NUMBERP *READ-BASE*)
-                                          ( #/A (CHAR-UPCASE CH) (+ *READ-BASE* #/A -11.)))
-                                     (CDR (GETF (RDTBL-PLIST *READTABLE*) 'EXTENDED-DIGIT))
-                                   (RDTBL-CODE *READTABLE* CH-CHAR)))
-                               CH
-                               T)))))|#)|#
+;;; eof
