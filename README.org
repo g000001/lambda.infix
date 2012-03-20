@@ -1,0 +1,155 @@
+* LMI Lambda infix expressions
+# Fonts:(CPTFONT TR12 TR12I)
+- http://code.google.com/p/jrm-code-project/source/browse/trunk/lambda/io1/infix.lisp
+- New BSD License
+
+** You can now include infix expressions in your Lisp code.
+
+For example,
+
+:   X:Y+CAR(A1[I,J])
+
+is equivalent to
+
+:   (SETQ X (+ Y (CAR (AREF A1 I J))))
+
+begins an infix expression, and ends it.
+
+The atomic terms of infix expressions include
+
+      symbols: use \ to quote special characters.
+
+      numbers: any valid Lisp real or imaginary number is accepted.
+
+      Complex numbers can be constructed by addition or subtraction.
+
+      strings: the same as in ordinary Lisp syntax.
+
+      raw Lisp data: ! followed by any Lisp expression, as in
+
+:          FOO . !(CAR BAR)  =>  (LIST* FOO (CAR BAR))
+
+** Combining operations:
+
+*** Highest precedence
+
+        /a/ [ /i/ ]         (AREF /a/ /i/)
+
+        /a/ [ /i/, /j/ ]  (AREF /a/ /i/ /j/)        and so on
+
+  *examples*
+
+:        X[I,J+3]  ==>  (AREF X (+ J 3))
+
+:      (GET-MY-ARRAY(FOO))[I]  ==>  (AREF (GET-MY-ARRAY FOO) I)
+
+        /f/ ( /a/ ) (/f/ /a/)
+
+        /f/ ( /a/, /b/ )  (/f/ /a/ /b/)             and so on
+
+  *examples*
+:        CAR(X)  ==>  (CAR X)
+
+
+        ( /exp/ )     /exp/                 parentheses control order of evaluation.
+
+  *examples*
+
+:        (X+1)*Y  ==>  (* (+ X 1) Y)
+
+        ( /e1/, /e2/ )      (PROGN /e1/ /e2/)   and so on
+
+
+  *examples*
+
+:        (X:5, X*X)  ==>  (PROGN (SETQ X 5) (* X X))
+
+        [ /elt/ ]     (LIST /elt/)
+
+        [ /e1/, /e2/ ]      (LIST /e1/ /e2/)    and so on
+
+  *examples*
+
+:        [!'X,Y,Z]  ==>  (LIST 'X Y Z)
+
+*** Precedence 180 on left, 20 on right
+
+        /a/ : /b/           (SETF /a/ /b/)
+
+  *examples*
+
+:        X: 1 + Y: Z+5  ==>  (SETQ X (+ 1 (SETQ Y (+ Z 5))))
+
+*** Precedence 140
+
+        /a/ ^ /b/           (EXPT /a/ /b/) right associative
+
+        *examples*
+
+:        X ^ N ^ 2       (EXPT X (EXPT N 2))
+
+*** Precedence 120
+
+        /a/ * /b/           (* /a/ /b/)
+
+        /a/ * /b/ * /c/   (* /a/ /b/ /c/)   and so on
+
+        /a/ / /b/           (/ /a/ /b/)
+
+        /a/ / /b/ / /c/   (/ /a/ /b/ /c/)  and so on
+
+*** Precedence 100
+
+        \- /a/         (- /a/)
+
+        /a/ + /b/           (+ /a/ /b/)
+
+        /a/ + /b/ + /c/   (+ /a/ /b/ /c/)   and so on
+
+        /a/ - /b/           (- /a/ /b/)
+
+        /a/ - /b/ - /c/   (- /a/ /b/ /c/)   and so on
+
+*** Precedence 95
+
+        /a/ . /b/           (LIST* /a/ /b/)
+
+        /a/ . /b/ . /c/   (LIST* /a/ /b/ /c/)       and so on
+
+        /a/ @ /b/           (APPEND /a/ /b/)
+
+        /a/ @ /b/ @ /c/   (APPEND /a/ /b/ /c/)      and so on
+
+*** Precedence 80
+
+        /a/ ∈ /b/          (MEMBER /a/ /b/)
+
+        /a/ = /b/           (= /a/ /b/)
+
+        /a/ = /b/ = /c/   (= /a/ /b/ /c/)   and so on
+
+        <, >, ≠, ≥, ≤ are like =.
+
+*** Precedence 70
+
+        NOT /a/               (NOT /a/)
+
+*** Precedence 60
+
+        /a/ AND /b/         (AND /a/ /b/)
+
+        /a/ AND /b/ AND /c/       (AND /a/ /b/ /c/) and so on
+
+*** Precedence 50
+
+        /a/ OR /b/          (OR /a/ /b/)
+
+        /a/ OR /b/ OR /c/ (OR /a/ /b/ /c/)  and so on
+
+*** Precedence 45
+
+        for /c/, 25 for /a/ and /b/.
+
+        IF /c/ THEN /a/             (IF /c/ /a/)
+
+        IF /c/ THEN /a/ ELSE /b/    (IF /c/ /a/ /b/)
