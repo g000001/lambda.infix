@@ -112,7 +112,10 @@
                (SETQ NUMBER-SO-FAR NIL))
               (T
                (VECTOR-POP STRING)
-               (INFIX-RETURN-TOKEN C STRING stream)))))
+               (PROGN
+                 (IF C
+                     (INFIX-UNTYI C STREAM))
+                 (RETURN (READ-FROM-STRING STRING)))))))
     (WHEN (AND (NOT PREVIOUS-LOOKUP)
                (NOT NUMBER-SO-FAR)
                (NOT THIS-QUOTED-P)
