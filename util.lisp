@@ -47,7 +47,9 @@
        (cl:multiple-value-setq ,vars ,vals))))
 
 (defun lsh (integer count)
-  (ash integer (- count)))
+  ;; 36bit fixnum
+  (ldb (byte 35 0)
+       (ash integer count)))
 
 (defun bit-test (x y)
   (logtest x y))
